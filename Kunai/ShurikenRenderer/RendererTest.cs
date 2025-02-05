@@ -48,7 +48,19 @@ namespace Shuriken.Rendering
             set
             {
                 _additive = value;
-                GL.BlendFunc(BlendingFactor.SrcAlpha, _additive ? BlendingFactor.One : BlendingFactor.OneMinusSrcAlpha);
+                if(_additive)
+                {
+                    GL.BlendFuncSeparate(BlendingFactorSrc.SrcColor, BlendingFactorDest.DstColor,
+                      BlendingFactorSrc.SrcAlpha, BlendingFactorDest.DstAlpha);
+
+                }
+                else
+                {
+
+                }
+                GL.BlendFuncSeparate(BlendingFactorSrc.SrcAlpha, (_additive ? BlendingFactorDest.One : BlendingFactorDest.OneMinusSrcAlpha),
+                      BlendingFactorSrc.SrcAlpha, BlendingFactorDest.DstAlpha);
+                //GL.BlendFunc(BlendingFactor.SrcAlpha, _additive ? BlendingFactor.One : BlendingFactor.OneMinusSrcAlpha);
             }
         }
 
@@ -282,8 +294,8 @@ namespace Shuriken.Rendering
         /// </summary>
         public void End()
         {
-
-            foreach (var quad in _quads)
+            var ordered = _quads.OrderByDescending(x => x.ZIndex);
+            foreach (var quad in ordered)
             {
                 int id = quad.Texture?.GlTex?.Id ?? -1;
 

@@ -184,7 +184,7 @@ namespace Kunai.ShurikenRenderer
 
                 // make sure the buffers are the currect size
                 OpenTK.Mathematics.Vector2i wsizei = new((int)wsize.X, (int)wsize.Y);
-                if (_viewportData.FramebufferSize != wsizei || isSavingScreenshot)
+                if (_viewportData.FramebufferSize != wsizei)
                 {
                     _viewportData.FramebufferSize = wsizei;
 
@@ -245,43 +245,37 @@ namespace Kunai.ShurikenRenderer
                 GL.Viewport(0, 0, wsizei.X, wsizei.Y); // change the viewport to window
                 // actually draw the scene
                 {
-                    GL.Enable(EnableCap.Blend);
-                    RenderToViewport(in_CsdProject, in_DeltaTime, isSavingScreenshot);
-                }
+                    RenderToViewport(in_CsdProject, in_DeltaTime, true);
+                    
 
-                if(isSavingScreenshot)
-                {
-                    //Save framebuffer to a pixel buffer
-                    byte[] buffer = new byte[wsizei.X * wsizei.Y * 4];
-                    GL.ReadPixels(0, 0, wsizei.X, wsizei.Y, PixelFormat.Rgba, PixelType.UnsignedByte, buffer);
-
-                    Image<SixLabors.ImageSharp.PixelFormats.Rgba32> screenshot = 
-                        Image.LoadPixelData<SixLabors.ImageSharp.PixelFormats.Rgba32>(buffer, wsizei.X, wsizei.Y);
-
-                    //Flip vertically to fix orientation
-                    screenshot.Mutate(x => x.Flip(FlipMode.Vertical));
-
-                    //screenshot.Mutate(ctx =>
-                    //{
-                    //    ctx.ProcessPixelRowsAsVector4(rows =>
-                    //    {
-                    //        for (int y = 0; y < rows.Length; y++)
-                    //        {
-                    //            rows[y].W = 1.0f - rows[y].W;
-                    //        }
-                    //    });
-                    //});
-                    var fileDialog = NativeFileDialogSharp.Dialog.FileSave("png");
-                    if(fileDialog.IsOk)
+                    if (isSavingScreenshot)
                     {
-                        string path = fileDialog.Path;
-                        if (!Path.HasExtension(path))
-                            path += ".png";
-                        screenshot.SaveAsPng(path);
-                    }
+                        GL.Disable(EnableCap.Blend);
 
-                    saveScreenshotWhenRendered = false;
+                        //Save framebuffer to a pixel buffer
+                        byte[] buffer = new byte[wsizei.X * wsizei.Y * 4];
+                        GL.ReadPixels(0, 0, wsizei.X, wsizei.Y, PixelFormat.Rgba, PixelType.UnsignedByte, buffer);
+
+                        Image<SixLabors.ImageSharp.PixelFormats.Rgba32> screenshot =
+                            Image.LoadPixelData<SixLabors.ImageSharp.PixelFormats.Rgba32>(buffer, wsizei.X, wsizei.Y);
+
+                        //Flip vertically to fix orientation
+                        screenshot.Mutate(x => x.Flip(FlipMode.Vertical));
+
+                        var fileDialog = NativeFileDialogSharp.Dialog.FileSave("png");
+                        if (fileDialog.IsOk)
+                        {
+                            string path = fileDialog.Path;
+                            if (!Path.HasExtension(path))
+                                path += ".png";
+                            screenshot.SaveAsPng(path);
+                        }
+
+                        saveScreenshotWhenRendered = false;
+                    }
                 }
+
+               
                 // unbind our bo so nothing else uses it
                 GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
                 GL.Viewport(0, 0, _window.ClientSize.X, _window.ClientSize.Y); // back to full screen size
@@ -290,7 +284,7 @@ namespace Kunai.ShurikenRenderer
         }
         private void RenderToViewport(CsdProject in_CsdProject, float in_DeltaTime, bool in_ScreenshotMode)
         {            
-            GL.ClearColor(in_ScreenshotMode ? OpenTK.Mathematics.Color4.Transparent : OpenTK.Mathematics.Color4.DarkGray);
+            GL.ClearColor(in_ScreenshotMode ? new OpenTK.Mathematics.Color4(255,255,255,1) : OpenTK.Mathematics.Color4.DarkGray);
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
             Renderer.Width = (int)ViewportSize.X;

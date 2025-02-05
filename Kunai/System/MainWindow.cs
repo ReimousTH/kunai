@@ -26,7 +26,12 @@ namespace Kunai
         private ImGuiController _controller;
         public static KunaiProject Renderer;
         public static ImGuiWindowFlags WindowFlags = ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoMove | ImGuiWindowFlags.NoCollapse;
-        public MainWindow() : base(GameWindowSettings.Default, new NativeWindowSettings(){ Size = new Vector2i(1600, 900), APIVersion = new Version(3, 3) })
+        public MainWindow() : base(GameWindowSettings.Default, new NativeWindowSettings(){ Size = new Vector2i(1600, 900), APIVersion = new Version(3, 3),
+            RedBits = 8,
+            GreenBits = 8,
+            BlueBits = 8,
+            AlphaBits = 8
+        })
         { }
         protected override void OnLoad()
         {
@@ -61,11 +66,14 @@ namespace Kunai
             base.OnRenderFrame(in_E);
             _controller.Update(this, (float)in_E.Time);
 
-            GL.ClearColor(new Color4(0, 0, 0, 255));
+            GL.ClearColor(new Color4(0, 0, 0, 0));
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit | ClearBufferMask.StencilBufferBit);
             GL.Enable(EnableCap.Blend);
-            GL.Disable(EnableCap.CullFace);
+            GL.BlendFuncSeparate(BlendingFactorSrc.SrcAlpha,BlendingFactorDest.OneMinusSrcAlpha,
+                     BlendingFactorSrc.SrcAlpha, BlendingFactorDest.DstAlpha);
             GL.BlendEquation(BlendEquationMode.FuncAdd);
+            GL.PixelStore(PixelStoreParameter.PackAlignment, 1);
+            GL.Disable(EnableCap.CullFace);
             float deltaTime = (float)(in_E.Time);
             Renderer.Render(Renderer.WorkProjectCsd, (float)deltaTime);
             //ImGui.ShowMetricsWindow();
