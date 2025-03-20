@@ -4,6 +4,8 @@ using Hexa.NET.Utilities.Text;
 using IconFonts;
 using Kunai.ShurikenRenderer;
 using OpenTK.Graphics.OpenGL;
+using SharpNeedle.Framework.HedgehogEngine.Needle.Shader.Variable;
+using SharpNeedle.Framework.Ninja.Csd;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -75,12 +77,29 @@ namespace Kunai.Window
             int selectedIndex = -2;
             int selectedSpriteIndex = -2;
             int idx = 0;
-            foreach (var texture in in_Renderer.WorkProjectCsd.Textures)
+
+            List<int> rem_tex = new List<int>();
+            for (int t = 0;t < in_Renderer.WorkProjectCsd.Textures.Count;t++)
             {
+                ITexture texture = in_Renderer.WorkProjectCsd.Textures[t];
+ 
                 if (ImGui.CollapsingHeader(texture.Name))
                 {
                     if (in_EditMode)
                         ImGui.Indent();
+
+
+                    if (ImGui.BeginPopupContextItem())
+                    {
+                        bool pass = false;
+                        if (ImGui.MenuItem("Remove"))
+                        {
+                            rem_tex.Add(t);
+
+                        }
+                        ImGui.EndPopup();
+                    }
+
                     int idx2 = 0;
                     var spritesList = SpriteHelper.Textures[idx].Sprites;
                     for (int i = 0; i < spritesList.Count; i++)
@@ -139,6 +158,7 @@ namespace Kunai.Window
                 }
                 idx++;
             }
+            foreach (var index in rem_tex) in_Renderer.WorkProjectCsd.Textures.RemoveAt(index);
             return new STextureSelectorResult(selectedIndex, selectedSpriteIndex);
         }
         public static unsafe bool SpriteImageButton(string in_Id, Shuriken.Rendering.Sprite in_Spr, Vector2 in_Size = default)

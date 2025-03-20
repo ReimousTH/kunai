@@ -77,9 +77,28 @@ public static class AnimationTypeMethods
                 max = index - 1;
             else
                 min = index + 1;
+
         }
 
         return min;
+    }
+    public static int FindKeyframeStrict(this SharpNeedle.Framework.Ninja.Csd.Motions.KeyFrameList in_List, float in_Frame)
+    {
+        int min = 0;
+        int max = in_List.Count - 1;
+
+        while (min <= max)
+        {
+            int index = (min + max) / 2;
+
+            if ((uint)in_Frame < in_List[index].Frame)
+                max = index - 1;
+            else if ((uint)in_Frame > in_List[index].Frame)
+                min = index + 1;
+            else return index;
+        }
+
+        return -1;
     }
     public static float GetSingle(this SharpNeedle.Framework.Ninja.Csd.Motions.KeyFrameList in_List, float in_Frame)
     {
@@ -94,8 +113,11 @@ public static class AnimationTypeMethods
         if (index == 0)
             return in_List.Frames[index].Value.Float;
 
+
         var keyframe = in_List.Frames[index - 1];
         var nextKeyframe = in_List.Frames[index];
+
+
 
         float factor;
 

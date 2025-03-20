@@ -49,12 +49,14 @@ namespace Kunai.ShurikenRenderer
             public bool PlayingAnimations;
             public bool ShowQuads;
             public double Time;
+            public int Frame;
         }
         public struct SSelectionData
         {
             public KeyFrameList TrackAnimation;
             public KeyFrame KeyframeSelected;
             public Cast SelectedCast;
+            public Motion SelectedMotion;
             public KeyValuePair<string, Scene> SelectedScene;
         }
         public Renderer Renderer;

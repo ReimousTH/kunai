@@ -11,6 +11,7 @@ using System;
 using HekonrayBase.Base;
 using HekonrayBase;
 using SharpNeedle.Structs;
+using SharpNeedle.Framework.Ninja.Csd.Motions;
 
 namespace Kunai.Window
 {
@@ -54,7 +55,8 @@ namespace Kunai.Window
             None,
             Scene,
             Node,
-            Cast
+            Cast,
+            Motion
         }
         public static ESelectionType SelectionType;
         static bool ms_IsEditingCrop;
@@ -70,6 +72,12 @@ namespace Kunai.Window
         {
             KunaiProject.Instance.SelectionData.SelectedScene = in_Scene;
             SelectionType = ESelectionType.Scene;
+        }
+
+        public static void SelectMotion(Motion in_Motion)
+        {
+            KunaiProject.Instance.SelectionData.SelectedMotion = in_Motion;
+            SelectionType = ESelectionType.Motion;
         }
 
         private static int Gcd(int in_A, int in_B)
@@ -761,7 +769,7 @@ namespace Kunai.Window
         {
             var renderer = (KunaiProject)in_Renderer;
             ImGui.SetNextWindowPos(new System.Numerics.Vector2((ImGui.GetWindowViewport().Size.X / 4.5f) * 3.5f, MenuBarWindow.MenuBarHeight), ImGuiCond.Always);
-            ImGui.SetNextWindowSize(new System.Numerics.Vector2(ImGui.GetWindowViewport().Size.X / 4.5f, ImGui.GetWindowViewport().Size.Y - MenuBarWindow.MenuBarHeight), ImGuiCond.Always);
+            ImGui.SetNextWindowSize(new System.Numerics.Vector2(ImGui.GetWindowViewport().Size.X / 4.5f, (ImGui.GetWindowViewport().Size.Y - AnimationsWindow.AnimationButtonHeight) - MenuBarWindow.MenuBarHeight), ImGuiCond.Always);
             if (ImGui.Begin("Inspector", MainWindow.WindowFlags))
             {
                 if (renderer.WorkProjectCsd != null)

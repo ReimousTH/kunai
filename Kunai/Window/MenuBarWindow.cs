@@ -14,6 +14,8 @@ namespace Kunai.Window
     public class MenuBarWindow : Singleton<MenuBarWindow>, IWindow
     {
         public static float MenuBarHeight = 32;
+
+  
         private static readonly string FiltersOpen = "xncp,yncp,gncp,sncp";
         private static readonly string Filters = "xncp;yncp;gncp;sncp";
 

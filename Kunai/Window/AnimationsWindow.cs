@@ -11,13 +11,27 @@ using OpenTK.Graphics.OpenGL;
 using HekonrayBase.Base;
 using HekonrayBase;
 using System;
+using System.Linq;
+using SharpNeedle.Framework.Ninja.Csd;
+using SharpNeedle.Structs;
+using SharpNeedle.Framework.SurfRide.Draw;
+using Motion = SharpNeedle.Framework.Ninja.Csd.Motions.Motion;
+using KeyFrame = SharpNeedle.Framework.Ninja.Csd.Motions.KeyFrame;
+using InterpolationType = SharpNeedle.Framework.Ninja.Csd.Motions.InterpolationType;
+using System.Reflection;
+using Shuriken.Rendering;
+using System.Windows.Controls;
+using SharpNeedle.Framework.Glitter;
 
 namespace Kunai.Window
 {
-    
+
+ 
     
     public class AnimationsWindow : Singleton<AnimationsWindow>, IWindow
     {
+        public static float AnimationButtonHeight = 96.0f;
+
         public struct SKeyframePropertyInfo
         {
             public string Icon;
@@ -33,15 +47,72 @@ namespace Kunai.Window
         }
         private static List<ImPlotPoint> ms_Points = new List<ImPlotPoint>();
 
+
+
+
+        SharpNeedle.Framework.Ninja.Csd.Motions.KeyProperty DrawMotionElementPopup_SelectedTrackType = SharpNeedle.Framework.Ninja.Csd.Motions.KeyProperty.HideFlag;
+
+        private void DrawMotionElementPopup(string key,Motion motion)
+        {
+            var selectedScene = KunaiProject.Instance.SelectionData.SelectedScene;
+            var cast = KunaiProject.Instance.SelectionData.SelectedCast;
+
+
+            ImGui.SeparatorText($"Motion");
+            ImGui.Text("Empty");
+
+
+            if (cast != null)
+            {
+                ImGui.SeparatorText($"CastAnim[cast:{cast.Name},track:{key}]");
+                if (ImGui.BeginCombo("Combo", Enum.GetName(DrawMotionElementPopup_SelectedTrackType)))
+                {
+                    foreach (var prop in Enum.GetNames(typeof(SharpNeedle.Framework.Ninja.Csd.Motions.KeyProperty)))
+                    {
+                        bool isSelected = (Enum.GetName(DrawMotionElementPopup_SelectedTrackType) == prop);
+                        if (ImGui.Selectable(prop, isSelected))
+                        {
+                            DrawMotionElementPopup_SelectedTrackType = (SharpNeedle.Framework.Ninja.Csd.Motions.KeyProperty)Enum.Parse(typeof(SharpNeedle.Framework.Ninja.Csd.Motions.KeyProperty), prop);
+                        }
+
+                        if (isSelected)
+                        {
+                            ImGui.SetItemDefaultFocus();
+                        }
+                    }
+
+                    ImGui.EndCombo();
+                }
+                
+
+                if (ImGui.MenuItem("Add KeyframeList"))
+                {
+                    var kf = new KeyFrameList();
+                    var mt =  motion.FamilyMotions.First().CastMotions.Find(zx=>zx.Cast.Name == cast.Name);
+                    kf.Property = DrawMotionElementPopup_SelectedTrackType;
+                    mt.Add(kf);
+                
+                }
+
+            }
+
+        }
         private void DrawMotionElement(SVisibilityData.SAnimation in_SceneMotion)
         {
             bool selected = false;
-            if (ImKunai.VisibilityNode(in_SceneMotion.Motion.Key, ref in_SceneMotion.Active, ref selected, in_ShowArrow: true))
+
+
+            if (ImKunai.VisibilityNode(in_SceneMotion.Motion.Key, ref in_SceneMotion.Active, ref selected,()=> { DrawMotionElementPopup(in_SceneMotion.Motion.Key,in_SceneMotion.Motion.Value); },in_ShowArrow: true))
             {
                 foreach (FamilyMotion familyMotion in in_SceneMotion.Motion.Value.FamilyMotions)
                 {
                     DrawFamilyMotionElement(familyMotion);
                 }
+                if (selected)
+                {
+                    InspectorWindow.SelectMotion(in_SceneMotion.Motion.Value);
+                }
+
                 ImGui.TreePop();
             }
         }
@@ -84,14 +155,18 @@ namespace Kunai.Window
                 CastMotion castMotion = in_FamilyMotion.CastMotions[i];
                 if (castMotion.Count == 0) continue;
                 ImGui.PushID($"##{castMotion.Cast.Name}anim_{i}");
+
+   
                 if (ImGui.TreeNode(castMotion.Cast.Name))
                 {
                     for (int t = 0; t < castMotion.Count; t++)
                     {
-                        ImGui.PushID($"##{castMotion.Cast.Name}anim_{i}_{t}");
                         KeyFrameList track = castMotion[t];
+                        ImGui.PushID($"##anim_{i}_{t}_{castMotion.Cast.Name}");
+                   
                         var info = GetDisplayNameAndIcon(track.Property);
 
+                    
                         var pos = ImGui.GetCursorPosX();
                         ImGui.PushStyleColor(ImGuiCol.Text, ImGui.ColorConvertFloat4ToU32(info.Color));
                         ImKunai.TextFontAwesome(info.Icon);
@@ -105,9 +180,9 @@ namespace Kunai.Window
                         {
                             KunaiProject.Instance.SelectionData.TrackAnimation = track;
                         }
-                        ImGui.PopID();
+                       
 
-                        if (ImGui.BeginPopupContextItem())
+                        if (ImGui.BeginPopupContextItem($"##anim_{i}_{t}_{castMotion.Cast.Name}"))
                         {
                             ImGui.SeparatorText("Track");
 
@@ -117,20 +192,28 @@ namespace Kunai.Window
                             }
                             ImGui.EndPopup();
                         }
+                        ImGui.PopID();
+
                     }
+                    ImGui.Text(""); // Last Element popup getting ignored for some reason so need space
+
+
+                    if (ImGui.BeginPopupContextItem($"##{castMotion.Cast.Name}anim_{i}_x_x"))
+                    {
+                        ImGui.SeparatorText("Cast Anim");
+
+                        if (ImGui.MenuItem("Delete"))
+                        {
+                            in_FamilyMotion.CastMotions.Remove(castMotion);
+                        }
+                        ImGui.EndPopup();
+                    }
+
                     ImGui.TreePop();
                 }
+              
                 ImGui.PopID();
-                if (ImGui.BeginPopupContextItem())
-                {
-                    ImGui.SeparatorText("Cast Anim");
-
-                    if (ImGui.MenuItem("Delete"))
-                    {
-                        in_FamilyMotion.CastMotions.Remove(castMotion);
-                    }
-                    ImGui.EndPopup();
-                }
+               
             }
         }
 
@@ -282,19 +365,226 @@ namespace Kunai.Window
             throw new System.NotImplementedException();
         }
 
+
+        void ApplyAnimationFrameKey<T>(Cast cast, SharpNeedle.Framework.Ninja.Csd.Motions.Motion motion, SharpNeedle.Framework.Ninja.Csd.Motions.KeyProperty keyproperty,InterpolationType interp, T color, double frame)
+        {
+
+
+
+            var KeyFrame = new SharpNeedle.Framework.Ninja.Csd.Motions.KeyFrame();
+            var mt = motion.FamilyMotions.First().CastMotions.Find(zx => zx.Cast.Name == cast.Name);
+            KeyFrameList? kl = new KeyFrameList() { Property = keyproperty };
+
+            if ((kl = mt.Find(zx => zx.Property == keyproperty)) == null)
+            {
+                kl = new KeyFrameList() { Property = keyproperty };
+                mt.Add(kl);
+                kl.Add(KeyFrame);
+            }
+            else
+            {
+                int kindex = -1;
+                if ((kindex = kl.FindKeyframeStrict((float)frame * motion.Scene.FrameRate)) != -1)
+                {
+                    KeyFrame = kl.Frames[kindex];
+                }
+                else
+                {
+                    kl.Add(KeyFrame);
+                }
+            }
+
+            //Bypass T limitation
+            var ku = (KeyFrame.Union)typeof(SharpNeedle.Framework.Ninja.Csd.Motions.KeyFrame.Union).GetConstructor(BindingFlags.Public | BindingFlags.Instance, new Type[] { typeof(T) }).Invoke(new object[] { color });
+            KeyFrame.Frame = (uint)(frame * motion.Scene.FrameRate);
+            KeyFrame.Value = ku;
+            KeyFrame.Interpolation = interp;
+
+
+            }
+
+
+
+        int Interpolation = (int)InterpolationType.Linear;
+
+        public void RenderAnimationButton(IProgramProject in_Renderer)
+        {
+            var sizex = ImGui.GetWindowViewport().Size.X;
+            var sizey = ImGui.GetWindowViewport().Size.Y;
+            ImGui.SetNextWindowPos(new System.Numerics.Vector2(0, sizey - AnimationButtonHeight), ImGuiCond.Always);
+            ImGui.SetNextWindowSize(new System.Numerics.Vector2(sizex, sizey), ImGuiCond.Always);
+
+            if (ImGui.Begin("AnimationsButton",MainWindow.WindowFlags | ImGuiWindowFlags.NoTitleBar)){
+
+
+                var renderer = (KunaiProject)in_Renderer;
+                var selectedScene2 = KunaiProject.Instance.SelectionData.SelectedScene;
+                var cast = KunaiProject.Instance.SelectionData.SelectedCast;
+                var motion = KunaiProject.Instance.SelectionData.SelectedMotion;
+
+                ImGui.SeparatorText($"Cast : {(cast != null ? cast.Name : cast)}, motion : {(motion != null ? motion : motion)}");
+                bool disabled = !(selectedScene2.Value != null && cast != null && motion != null);
+
+                if (!disabled)
+                {
+                    disabled = !(motion.Scene == selectedScene2.Value);
+                }
+
+                ImGui.BeginDisabled(disabled);
+
+
+                if (ImGui.Button("COLOR"))
+                {
+                    ApplyAnimationFrameKey(cast, motion, SharpNeedle.Framework.Ninja.Csd.Motions.KeyProperty.Color,(InterpolationType)Interpolation, cast.Info.Color, renderer.Config.Time);
+                }
+                ImGui.SameLine();
+                if (ImGui.Button("VC\nALL"))
+                {
+                    ApplyAnimationFrameKey(cast, motion, SharpNeedle.Framework.Ninja.Csd.Motions.KeyProperty.GradientTopLeft, (InterpolationType)Interpolation, cast.Info.GradientTopLeft, renderer.Config.Time);
+                    ApplyAnimationFrameKey(cast, motion, SharpNeedle.Framework.Ninja.Csd.Motions.KeyProperty.GradientTopRight, (InterpolationType)Interpolation, cast.Info.GradientTopRight, renderer.Config.Time);
+                    ApplyAnimationFrameKey(cast, motion, SharpNeedle.Framework.Ninja.Csd.Motions.KeyProperty.GradientBottomLeft, (InterpolationType)Interpolation, cast.Info.GradientBottomLeft, renderer.Config.Time);
+                    ApplyAnimationFrameKey(cast, motion, SharpNeedle.Framework.Ninja.Csd.Motions.KeyProperty.GradientBottomRight, (InterpolationType)Interpolation, cast.Info.GradientBottomRight, renderer.Config.Time);
+                }
+
+                ImGui.SameLine();
+
+                ImGui.BeginGroup();
+
+                if (ImGui.Button("TL"))
+                {
+                    ApplyAnimationFrameKey(cast, motion, SharpNeedle.Framework.Ninja.Csd.Motions.KeyProperty.GradientTopLeft, (InterpolationType)Interpolation, cast.Info.GradientTopLeft, renderer.Config.Time);
+                }
+                if (ImGui.Button("TR"))
+                {
+                    ApplyAnimationFrameKey(cast, motion, SharpNeedle.Framework.Ninja.Csd.Motions.KeyProperty.GradientTopRight, (InterpolationType)Interpolation, cast.Info.GradientTopRight, renderer.Config.Time);
+                }
+                ImGui.EndGroup();
+
+                ImGui.SameLine();
+                ImGui.BeginGroup();
+                if (ImGui.Button("BL"))
+                {
+                    ApplyAnimationFrameKey(cast, motion, SharpNeedle.Framework.Ninja.Csd.Motions.KeyProperty.GradientBottomLeft, (InterpolationType)Interpolation, cast.Info.GradientBottomRight, renderer.Config.Time);
+                }
+                if (ImGui.Button("BR"))
+                {
+
+                    ApplyAnimationFrameKey(cast, motion, SharpNeedle.Framework.Ninja.Csd.Motions.KeyProperty.GradientBottomRight, (InterpolationType)Interpolation, cast.Info.GradientBottomRight, renderer.Config.Time);
+                }
+                ImGui.EndGroup();
+
+
+                ImGui.SameLine();
+                if (ImGui.Button("TRS\nALL"))
+                {
+                    ApplyAnimationFrameKey(cast, motion, SharpNeedle.Framework.Ninja.Csd.Motions.KeyProperty.PositionX, (InterpolationType)Interpolation, cast.Info.Translation.X, renderer.Config.Time);
+                    ApplyAnimationFrameKey(cast, motion, SharpNeedle.Framework.Ninja.Csd.Motions.KeyProperty.PositionY, (InterpolationType)Interpolation, cast.Info.Translation.Y, renderer.Config.Time);
+                    ApplyAnimationFrameKey(cast, motion, SharpNeedle.Framework.Ninja.Csd.Motions.KeyProperty.ScaleX, (InterpolationType)Interpolation, cast.Info.Scale.X, renderer.Config.Time);
+                    ApplyAnimationFrameKey(cast, motion, SharpNeedle.Framework.Ninja.Csd.Motions.KeyProperty.ScaleY, (InterpolationType)Interpolation, cast.Info.Scale.Y, renderer.Config.Time);
+                    ApplyAnimationFrameKey(cast, motion, SharpNeedle.Framework.Ninja.Csd.Motions.KeyProperty.Rotation, (InterpolationType)Interpolation, cast.Info.Rotation, renderer.Config.Time);
+                }
+
+                ImGui.SameLine();
+
+                ImGui.BeginGroup();
+
+                if (ImGui.Button("TXY"))
+                {
+                    ApplyAnimationFrameKey(cast, motion, SharpNeedle.Framework.Ninja.Csd.Motions.KeyProperty.PositionX, (InterpolationType)Interpolation, cast.Info.Translation.X, renderer.Config.Time);
+                    ApplyAnimationFrameKey(cast, motion, SharpNeedle.Framework.Ninja.Csd.Motions.KeyProperty.PositionX, (InterpolationType)Interpolation, cast.Info.Translation.Y, renderer.Config.Time);
+                }
+                if (ImGui.Button("SXY"))
+                {
+
+                    ApplyAnimationFrameKey(cast, motion, SharpNeedle.Framework.Ninja.Csd.Motions.KeyProperty.ScaleX, (InterpolationType)Interpolation, cast.Info.Scale.X, renderer.Config.Time);
+                    ApplyAnimationFrameKey(cast, motion, SharpNeedle.Framework.Ninja.Csd.Motions.KeyProperty.ScaleY, (InterpolationType)Interpolation, cast.Info.Scale.Y, renderer.Config.Time);
+                }
+
+
+                ImGui.EndGroup();
+
+
+                ImGui.SameLine();
+
+                ImGui.BeginGroup();
+
+
+                if (ImGui.Button("TX"))
+                {
+                    ApplyAnimationFrameKey(cast, motion, SharpNeedle.Framework.Ninja.Csd.Motions.KeyProperty.PositionX, (InterpolationType)Interpolation, cast.Info.Translation.X, renderer.Config.Time);
+                }
+                if (ImGui.Button("SX"))
+                {
+                    ApplyAnimationFrameKey(cast, motion, SharpNeedle.Framework.Ninja.Csd.Motions.KeyProperty.ScaleX, (InterpolationType)Interpolation, cast.Info.Scale.X, renderer.Config.Time);
+                }
+
+
+                ImGui.EndGroup();
+
+
+                ImGui.SameLine();
+
+                ImGui.BeginGroup();
+
+                if (ImGui.Button("TY"))
+                {
+                    ApplyAnimationFrameKey(cast, motion, SharpNeedle.Framework.Ninja.Csd.Motions.KeyProperty.PositionY, (InterpolationType)Interpolation, cast.Info.Translation.Y, renderer.Config.Time);
+                }
+                if (ImGui.Button("RY"))
+                {
+                    ApplyAnimationFrameKey(cast, motion, SharpNeedle.Framework.Ninja.Csd.Motions.KeyProperty.ScaleY, (InterpolationType)Interpolation, cast.Info.Scale.Y, renderer.Config.Time);
+                }
+                ImGui.EndGroup();
+
+
+                ImGui.SameLine();
+
+                ImGui.BeginGroup();
+
+                if (ImGui.Button("RZ"))
+                {
+                    ApplyAnimationFrameKey(cast, motion, SharpNeedle.Framework.Ninja.Csd.Motions.KeyProperty.Rotation, (InterpolationType)Interpolation, cast.Info.Rotation, renderer.Config.Time);
+                }
+
+                ImGui.EndGroup();
+
+
+                ImGui.SameLine();
+                ImGui.Combo("Interpolation", ref Interpolation, ["Const", "Linear", "Hermite"], 3);
+    
+
+                ImGui.EndDisabled();
+
+
+                ImGui.End();
+            }
+
+        }
+
         public void Render(IProgramProject in_Renderer)
         {
             var renderer = (KunaiProject)in_Renderer;
             var size1 = ImGui.GetWindowViewport().Size.X / 4.5f;
-            ImGui.SetNextWindowPos(new System.Numerics.Vector2(size1, ImGui.GetWindowViewport().Size.Y / 1.5f), ImGuiCond.Always);
-            ImGui.SetNextWindowSize(new System.Numerics.Vector2(size1 * 2.5f, ImGui.GetWindowViewport().Size.Y / 3), ImGuiCond.Always);
+            ImGui.SetNextWindowPos(new System.Numerics.Vector2(size1, (ImGui.GetWindowViewport().Size.Y) / 1.5f), ImGuiCond.Always);
+            ImGui.SetNextWindowSize(new System.Numerics.Vector2(size1 * 2.5f, (ImGui.GetWindowViewport().Size.Y - AnimationsWindow.AnimationButtonHeight - MenuBarWindow.MenuBarHeight) / 3), ImGuiCond.Always);
             if (ImGui.Begin("Animations", MainWindow.WindowFlags | ImGuiWindowFlags.NoTitleBar))
             {
+
+
 
                 ImGui.Checkbox("Show Quads", ref renderer.Config.ShowQuads);
                 ImGui.SetNextItemWidth(60);
                 ImGui.SameLine();
                 ImGui.InputDouble("Time", ref renderer.Config.Time, "%.2f");
+                ImGui.SameLine();
+                if (KunaiProject.Instance.SelectionData.SelectedScene.Value != null) {
+
+
+                    renderer.Config.Frame = (int)(renderer.Config.Time * KunaiProject.Instance.SelectionData.SelectedScene.Value.FrameRate);
+                    ImGui.SetNextItemWidth(128);
+                    ImGui.InputInt("Frame", ref renderer.Config.Frame,ImGuiInputTextFlags.ReadOnly);
+                }
+                    
                 ImGui.SameLine();
                 ImGui.BeginGroup();
                 ImGui.PushFont(ImGuiController.FontAwesomeFont);
@@ -308,6 +598,9 @@ namespace Kunai.Window
                     renderer.Config.PlayingAnimations = false;
                     renderer.Config.Time = 0;
                 }
+
+ 
+
                 ImGui.SameLine();
                 if (ImGui.Button(renderer.Config.PlayingAnimations ? FontAwesome6.Pause : FontAwesome6.Play))
                     renderer.Config.PlayingAnimations = !renderer.Config.PlayingAnimations;
@@ -317,6 +610,23 @@ namespace Kunai.Window
                 {
                     renderer.Config.Time = 0;
                 }
+
+                ImGui.SameLine();
+                if (KunaiProject.Instance.SelectionData.SelectedScene.Value != null)
+                {
+                    if (ImGui.Button(FontAwesome6.ArrowLeft))
+                    {
+                        renderer.Config.Time -= 1.0/KunaiProject.Instance.SelectionData.SelectedScene.Value.FrameRate;
+                    }
+
+                    ImGui.SameLine();
+                    if (ImGui.Button(FontAwesome6.ArrowRight))
+                    {
+                        renderer.Config.Time += 1.0/KunaiProject.Instance.SelectionData.SelectedScene.Value.FrameRate;
+                    }
+                }
+
+
                 ImGui.PopFont();
                 ImGui.EndGroup();
 
@@ -324,15 +634,68 @@ namespace Kunai.Window
                 //The list of anims, anim tracks and cast animations
                 if (ImGui.BeginListBox("##animlist", new System.Numerics.Vector2(ImGui.GetWindowSize().X / 5, -1)))
                 {
+
+
+
+
                     var selectedScene = KunaiProject.Instance.SelectionData.SelectedScene;
                     if (selectedScene.Value != null)
                     {
+
+                        // Render the popup content
+
+
+
                         SVisibilityData.SScene sceneVisData = renderer.VisibilityData.GetScene(selectedScene.Value);
                         if (sceneVisData != null)
                         {
+
+
+                            bool _add = false;
+
+
+                            if (ImGui.BeginPopupContextWindow("##animlist"))
+                            {
+                                ImGui.SeparatorText("Bank");
+                                if (ImGui.MenuItem("Add"))
+                                {
+                                    _add = true;
+                                }
+                                if (ImGui.MenuItem("Remove"))
+                                {
+
+                                }
+                                ImGui.EndPopup();
+                            }
+                            if (_add) ImGui.OpenPopup("animlist_popup");  // EndPopup() completly empty buffer thats why it like this
+
+                            if (ImGui.BeginPopup("animlist_popup", ImGuiWindowFlags.AlwaysAutoResize))
+                            {
+                                string inputText = $"animation_{sceneVisData.Animation.Count}";
+                                // Render the popup content here
+                                {
+                                    ImGui.Text("Enter animation name:");
+                                    ImGui.InputText("##animlist_ADD_input", ref inputText, 256);
+
+                                    if (ImGui.Button("OK")) //enter-button
+                                    {
+                                        Console.WriteLine($"Animation name added: {inputText}");
+                                        selectedScene.Value.Motions.Add(inputText, new Motion(selectedScene.Value));
+                                        sceneVisData.Animation.Add(new SVisibilityData.SAnimation(selectedScene.Value.Motions.Last()));
+                                    }
+
+                                }
+
+                                ImGui.EndPopup();
+                            }
+
+
+
                             foreach (SVisibilityData.SAnimation sceneMotion in sceneVisData.Animation)
                             {
+
                                 DrawMotionElement(sceneMotion);
+
                             }
                         }
                     }
@@ -342,9 +705,13 @@ namespace Kunai.Window
                 DrawPlot(renderer);
                 ImGui.SameLine();
                 DrawKeyframeInspector();
+                // ImGui.SameLine();
 
                 ImGui.End();
             }
+            
+             RenderAnimationButton(renderer);
+
         }
     }
 }

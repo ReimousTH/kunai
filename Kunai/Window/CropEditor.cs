@@ -53,7 +53,7 @@ namespace Kunai.Window
                 {
                     //Add selection box
                     ImGui.GetWindowDrawList().AddQuad(pTopLeft, pTopRight, pBotRight, pBotLeft, ImGui.ColorConvertFloat4ToU32(new Vector4(1, 0.3f, 0, 1)), 3);
-                    if (MainWindow.IsMouseLeftTapped)
+                 //   if (MainWindow.IsMouseLeftTapped)
                     {
                         m_SelectedSpriteIndex = i;
                     }
@@ -155,16 +155,26 @@ namespace Kunai.Window
                     {
                         int idx = 0;
                         var result = ImKunai.TextureSelector(renderer, true);
+                      
                         if (result.TextureIndex != -2)
                             m_SelectedIndex = result.TextureIndex;
                         if (result.SpriteIndex != -2)
                             m_SelectedSpriteIndex = result.SpriteIndex;
+
+                   
+
+
                         ImGui.EndListBox();
                     }
                     ImGui.SameLine();
                     Vector2 availableSize = new Vector2(ImGui.GetWindowSize().X / 2, ImGui.GetContentRegionAvail().Y);
                     Vector2 viewportPos = ImGui.GetWindowPos() + ImGui.GetCursorPos();
-                    var textureSize = SpriteHelper.Textures[m_SelectedIndex].Size;
+
+                    Vector2 textureSize = new Vector2(0, 0);
+                    if (m_SelectedIndex < SpriteHelper.Textures.Count)
+                    {
+                        textureSize = SpriteHelper.Textures[m_SelectedIndex].Size;
+                    }
 
                     Vector2 imageSize;
                     if (textureSize.X > textureSize.Y)
@@ -174,36 +184,40 @@ namespace Kunai.Window
 
                     //Texture Image
                     var size2 = ImGui.GetContentRegionAvail().X - size1;
-                    ImKunai.ImageViewport("##cropEdit", new Vector2(size2, -1), SpriteHelper.Textures[m_SelectedIndex].Size.Y / SpriteHelper.Textures[m_SelectedIndex].Size.X, ZoomFactor, new ImTextureID(SpriteHelper.Textures[m_SelectedIndex].GlTex.Id), DrawQuadList, new Vector4(0.5f, 0.5f, 0.5f, 1));
+
+                    if (m_SelectedIndex < SpriteHelper.Textures.Count)
+                        ImKunai.ImageViewport("##cropEdit", new Vector2(size2, -1), SpriteHelper.Textures[m_SelectedIndex].Size.Y / SpriteHelper.Textures[m_SelectedIndex].Size.X, ZoomFactor, new ImTextureID(SpriteHelper.Textures[m_SelectedIndex].GlTex.Id), DrawQuadList, new Vector4(0.5f, 0.5f, 0.5f, 1));
 
                     bool windowHovered = ImGui.IsWindowHovered(ImGuiHoveredFlags.ChildWindows) && ImGui.IsItemHovered();
                     if (windowHovered)
                         ZoomFactor += ImGui.GetIO().MouseWheel / 5;
                     ImGui.SameLine();
-                    if (ImGui.BeginListBox("##texturelist2", new Vector2(size1, -1)))
-                    {
-                        var texture = SpriteHelper.Textures[m_SelectedIndex];
-                        var sprite = SpriteHelper.Sprites[texture.Sprites[m_SelectedSpriteIndex]];
-                        Vector2 spriteStart = sprite.Start;
-                        Vector2 spriteSize = sprite.Dimensions;
-                        ImGui.SeparatorText("Texture Info");
-                        ImGui.Text($"Name: {texture.Name}");
-                        ImGui.Text($"Width: {texture.Width}");
-                        ImGui.Text($"Height: {texture.Height}");
-                        ImGui.SeparatorText("Crop");
-                        ImGui.Text($"Currently editing: Crop ({m_SelectedSpriteIndex})");
-                        ImGui.DragFloat2("Position", ref spriteStart, "%.0f");
-                        ImGui.DragFloat2("Dimension", ref spriteSize, "%.0f");
-                        spriteStart.X = Math.Clamp(spriteStart.X, 0, texture.Size.X);
-                        spriteStart.Y = Math.Clamp(spriteStart.Y, 0, texture.Size.Y);
 
-                        spriteSize.X = Math.Clamp(spriteSize.X, 1, texture.Size.X);
-                        spriteSize.Y = Math.Clamp(spriteSize.Y, 1, texture.Size.Y);
-                        sprite.Start = spriteStart;
-                        sprite.Dimensions = spriteSize;
-                        sprite.Recalculate();
-                        ImGui.EndListBox();
-                    }
+                    if (m_SelectedIndex < SpriteHelper.Textures.Count)
+                        if (ImGui.BeginListBox("##texturelist2", new Vector2(size1, -1)))
+                        {
+                            var texture = SpriteHelper.Textures[m_SelectedIndex];
+                            var sprite = SpriteHelper.Sprites[texture.Sprites[m_SelectedSpriteIndex]];
+                            Vector2 spriteStart = sprite.Start;
+                            Vector2 spriteSize = sprite.Dimensions;
+                            ImGui.SeparatorText("Texture Info");
+                            ImGui.Text($"Name: {texture.Name}");
+                            ImGui.Text($"Width: {texture.Width}");
+                            ImGui.Text($"Height: {texture.Height}");
+                            ImGui.SeparatorText("Crop");
+                            ImGui.Text($"Currently editing: Crop ({m_SelectedSpriteIndex})");
+                            ImGui.DragFloat2("Position", ref spriteStart, "%.0f");
+                            ImGui.DragFloat2("Dimension", ref spriteSize, "%.0f");
+                            spriteStart.X = Math.Clamp(spriteStart.X, 0, texture.Size.X);
+                            spriteStart.Y = Math.Clamp(spriteStart.Y, 0, texture.Size.Y);
+
+                            spriteSize.X = Math.Clamp(spriteSize.X, 1, texture.Size.X);
+                            spriteSize.Y = Math.Clamp(spriteSize.Y, 1, texture.Size.Y);
+                            sprite.Start = spriteStart;
+                            sprite.Dimensions = spriteSize;
+                            sprite.Recalculate();
+                            ImGui.EndListBox();
+                        }
 
                     ImGui.End();
                 }

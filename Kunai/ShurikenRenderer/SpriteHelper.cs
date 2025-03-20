@@ -74,7 +74,7 @@ namespace Kunai.ShurikenRenderer
         private static int ms_NextSpriteId = 1;
         private static List<Crop> ms_NcpSubimages = new List<Crop>();
         public static List<Texture> Textures { get; set; } = new List<Texture>();
-        public static List<Vector2> TextureSizesOriginal;
+        public static List<Vector2> TextureSizesOriginal = new List<Vector2>();
 
         public static void AddTexture(Texture in_Texture)
         {
@@ -87,6 +87,7 @@ namespace Kunai.ShurikenRenderer
         public static void BuildCropList(ref List<SharpNeedle.Framework.Ninja.Csd.Sprite> in_SubImages, ref List<Vector2> in_TextureSizes)
         {
             in_SubImages = new();
+
             in_TextureSizes = TextureSizesOriginal;
             if (in_TextureSizes.Count < Textures.Count)
             {

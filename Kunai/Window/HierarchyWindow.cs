@@ -173,7 +173,7 @@ namespace Kunai.Window
         {
             var renderer = (KunaiProject)in_Renderer;
             ImGui.SetNextWindowPos(new System.Numerics.Vector2(0, MenuBarWindow.MenuBarHeight), ImGuiCond.Always);
-            ImGui.SetNextWindowSize(new System.Numerics.Vector2(ImGui.GetWindowViewport().Size.X / 4.5f, ImGui.GetWindowViewport().Size.Y - MenuBarWindow.MenuBarHeight), ImGuiCond.Always);
+            ImGui.SetNextWindowSize(new System.Numerics.Vector2(ImGui.GetWindowViewport().Size.X / 4.5f, (ImGui.GetWindowViewport().Size.Y - AnimationsWindow.AnimationButtonHeight) - MenuBarWindow.MenuBarHeight), ImGuiCond.Always);
             if (ImGui.Begin("Hierarchy", MainWindow.WindowFlags))
             {
                 ImGui.BeginDisabled(true);
